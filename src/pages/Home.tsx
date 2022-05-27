@@ -1,41 +1,80 @@
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 
 import { Header } from "../components/Header";
-import { Task, TasksList } from "../components/TasksList";
+import { Task, TasksList, EditTask } from "../components/TasksList";
 import { TodoInput } from "../components/TodoInput";
 
 export function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  function taskAlreadyExists(newTaskTitle: string) {
+    const alreadyExists = tasks.find(
+      (title) => title.title === newTaskTitle.trim()
+    );
+
+    if (alreadyExists) {
+      Alert.alert(
+        "Task já cadastrada",
+        "Você não pode cadastrar uma task com o mesmo nome"
+      );
+      return true;
+    }
+
+    return false;
+  }
+
   function handleAddTask(newTaskTitle: string) {
-    setTasks((previousState) => [
-      ...previousState,
-      {
-        id: new Date().getTime(),
-        title: newTaskTitle,
-        done: false,
-      },
-    ]);
+    if (taskAlreadyExists(newTaskTitle)) return;
+
+    const data = {
+      id: new Date().getTime(),
+      title: newTaskTitle.trim(),
+      done: false,
+    };
+
+    setTasks((oldState) => [...oldState, data]);
   }
 
   function handleToggleTaskDone(id: number) {
-    const newTasks = tasks.map((task) => {
-      if (task.id === id) {
-        task = {
-          ...task,
-          done: !task.done,
-        };
-      }
-      return task;
-    });
-    setTasks(newTasks);
+    const updatedTasks = tasks.map((task) => ({ ...task }));
+
+    const foundTask = updatedTasks.find((task) => task.id === id);
+
+    if (!foundTask) return;
+
+    foundTask.done = !foundTask.done;
+
+    setTasks(updatedTasks);
   }
 
   function handleRemoveTask(id: number) {
-    const newTasks = tasks.filter((task) => task.id !== id);
+    Alert.alert(
+      "Remover item",
+      "Tem certeza que você deseja remover esse item?",
+      [
+        {
+          text: "Não",
+        },
+        {
+          text: "Sim",
+          onPress: () =>
+            setTasks((oldState) => oldState.filter((task) => task.id !== id)),
+        },
+      ]
+    );
+  }
 
-    setTasks(newTasks);
+  function handleEditTask(editTask: EditTask) {
+    const updatedTasks = tasks.map((task) => ({ ...task }));
+
+    const foundTask = updatedTasks.find((task) => task.id === editTask.taskId);
+
+    if (!foundTask) return;
+
+    foundTask.title = editTask.taskNewTitle;
+
+    setTasks(updatedTasks);
   }
 
   return (
@@ -48,6 +87,8 @@ export function Home() {
         tasks={tasks}
         toggleTaskDone={handleToggleTaskDone}
         removeTask={handleRemoveTask}
+        editTask={handleEditTask}
+        taskAlreadyExists={taskAlreadyExists}
       />
     </View>
   );
